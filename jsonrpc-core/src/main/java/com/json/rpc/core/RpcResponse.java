@@ -19,7 +19,6 @@ public class RpcResponse implements Serializable {
 
 	private static final long serialVersionUID = 3409245535132982803L;
 
-	private String jsonrpc = "2.0";
 	private long id;
 	private Object result;
 	private RpcError error;
