@@ -141,7 +141,7 @@ public class RpcDispatcher extends HttpServlet {
 			}
 
 			Map<String, Object> nestMap = (Map<String, Object>) paramsMap.get(topName);
-			for (int i = nestProperties.length - 1; i >= 1; i--) {
+			for (int i = 1; i < nestProperties.length; i++) {
 				String key = nestProperties[i];
 				if (i == nestProperties.length - 1) {
 					nestMap.put(key, HttpUtils.parameterValue(request, name));
