@@ -166,7 +166,7 @@ public class RpcDispatcher extends HttpServlet {
 		String head = "<head><title>JSON RPC Service List</title><style type='text/css'>table{border-collapse:collapse;border:none;width:800px;margin:0 auto;}td{border:solid #000 1px;}</style></head>";
 		StringBuilder html = new StringBuilder("<html>").append(head).append("<body><h2 style='text-align:center;'>JSON RPC Service List</h2><table>");
 		rpcRegistry.getHandlers().forEach(handler -> {
-			html.append("<tr><td style='width:300px;'>").append(handler.getServiceClass().getName()).append("</td>td style='padding-left: 10px;'>");
+			html.append("<tr><td style='width:300px;'>").append(handler.getServiceClass().getName()).append("</td><td style='padding-left: 10px;'>");
 			handler.getMethodInfos().forEach(m -> html.append("<div>").append(m.toString()).append("</div>"));
 			html.append("</td></tr>");
 		});
