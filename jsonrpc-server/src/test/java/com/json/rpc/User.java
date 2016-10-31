@@ -6,6 +6,17 @@ public class User {
 	private int age;
 	private boolean ok;
 
+	public User() {
+		super();
+	}
+
+	public User(String name, int age, boolean ok) {
+		super();
+		this.name = name;
+		this.age = age;
+		this.ok = ok;
+	}
+
 	public String getName() {
 		return name;
 	}

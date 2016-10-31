@@ -11,10 +11,15 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.fastjson.JSON;
 import com.json.rpc.core.RpcRequest;
 import com.json.rpc.core.RpcResponse;
 import com.json.rpc.core.utils.IoUtils;
+import com.json.rpc.server.utils.HttpUtils;
+import com.json.rpc.server.utils.MethodInfo;
 
 /**
  * RPC请求分发器
@@ -32,7 +37,9 @@ public class RpcDispatcher extends HttpServlet {
 
 	private static final String SERVICE_LIST_PATH = "/service/list";
 	private static final String ERROR_SERVICE_MISSING = "service is missing";
+	private static final String ERROR_METHOD_MISSING = "method is missing";
 
+	private Logger logger = LoggerFactory.getLogger(getClass());
 	private RpcRegistry rpcRegistry;
 
 	public RpcDispatcher(RpcRegistry rpcRegistry) {
@@ -70,18 +77,26 @@ public class RpcDispatcher extends HttpServlet {
 			ouputJSON(response, RpcResponse.error(0, 404, ERROR_SERVICE_MISSING));
 			return;
 		}
+		String methodName = request.getParameter("method");
+		MethodInfo methodInfo = rpcRegistry.find(serviceName).findMethodInfo(methodName);
+		if (methodInfo == null) {
+			ouputJSON(response, RpcResponse.error(0, 404, ERROR_METHOD_MISSING));
+			return;
+		}
+		logger.debug("RPC {} GET Request parameters: {}", serviceName, request.getParameterMap());
 
 		// 解析请求参数
-		String method = request.getParameter("method");
-		Object[] args = parseArgs(request);
+		Object[] args = parseArgs(request, methodInfo);
 		// 构建请求内容JSON
-		String jsonText = buildRequestJson(method, args);
+		String jsonText = buildRequestJson(methodName, args);
+		logger.debug("RPC {} GET Request jsonText: {}", serviceName, jsonText);
+
 		// 业务处理
 		RpcRequest rpcRequest = JSON.parseObject(jsonText, RpcRequest.class);
 		RpcResponse rpcResponse = rpcRegistry.find(serviceName).execute(rpcRequest);
 
 		// 对JSONP的支持
-		String jsonpCallback = findJsonpCallback(request);
+		String jsonpCallback = HttpUtils.getJsonpParameter(request);
 		if (jsonpCallback != null) {
 			response.setContentType(CONTENT_TYPE_JAVASCRIPT);
 			String jsonResult = JSON.toJSONString(rpcResponse);
@@ -104,101 +119,55 @@ public class RpcDispatcher extends HttpServlet {
 	}
 
 	// GET请求方式支持， 默认规范：（参数类型如何转换？反序列化时，fastjson会自动处理）
-	// _____1、普通参数：args[0]=value -> ["value"]
-	// _____2、对象属性：args[0].a=va -> [{"a":"va"}]
-	// _____3、复合参数：args[0]=value&args[1].a=a&args[1].b.c=c -> ["value",{"a":"a", "b":{"c":"c"}}]
+	// _____1、普通参数：name=value -> ["value"]
+	// _____2、对象属性：obj.a=va -> [{"a":"va"}]
+	// _____3、复合参数：name=value&obj.a=a&obj.b.c=c -> ["value",{"a":"a", "b":{"c":"c"}}]
 	@SuppressWarnings("unchecked")
-	private Object[] parseArgs(HttpServletRequest request) {
-		int maxIndex = 0;
-		Map<Integer, Object> argsMap = new HashMap<>();
+	private Object[] parseArgs(HttpServletRequest request, MethodInfo methodInfo) {
+		Map<String, Object> paramsMap = new HashMap<>();
 		Enumeration<String> paramNames = request.getParameterNames();
 		while (paramNames.hasMoreElements()) {
 			String name = paramNames.nextElement();
-			if (!name.startsWith("args")) {
-				continue;
-			}
-
-			int start = name.indexOf("[");
-			int end = name.indexOf("]");
-			int argIndex = Integer.valueOf(name.substring(start + 1, end));
-			maxIndex = Math.max(argIndex, maxIndex);
-
 			if (!name.contains(".")) {
-				argsMap.put(argIndex, parameterValue(request, name));
+				paramsMap.put(name, HttpUtils.parameterValue(request, name));
 				continue;
 			}
 
 			//分析嵌套参数
-			Object arg = argsMap.get(argIndex);
-			if (arg == null) {
-				arg = new HashMap<String, Object>();
-				argsMap.put(argIndex, arg);
-			}
-			Map<String, Object> map = (Map<String, Object>) arg;
 			String[] nestProperties = name.split("\\.");
-			for (int i = 1; i < nestProperties.length; i++) {
+			String topName = nestProperties[0];
+			if (!paramsMap.containsKey(topName)) {
+				paramsMap.put(topName, new HashMap<>());
+			}
+
+			Map<String, Object> nestMap = (Map<String, Object>) paramsMap.get(topName);
+			for (int i = nestProperties.length - 1; i >= 1; i--) {
 				String key = nestProperties[i];
 				if (i == nestProperties.length - 1) {
-					map.put(key, parameterValue(request, name));
+					nestMap.put(key, HttpUtils.parameterValue(request, name));
 					continue;
 				}
-
-				if (!map.containsKey(key)) {
-					map.put(key, new HashMap<String, Object>());
+				if (!nestMap.containsKey(key)) {
+					nestMap.put(key, new HashMap<String, Object>());
 				}
-				map = (Map<String, Object>) map.get(key);
+				nestMap = (Map<String, Object>) nestMap.get(key);
 			}
 		}
 
-		Object[] args = new Object[maxIndex + 1];
+		Object[] args = new Object[methodInfo.getArgsName().length];
 		for (int i = 0; i < args.length; i++) {
-			args[i] = argsMap.get(i);
+			args[i] = paramsMap.get(methodInfo.getArgsName()[i]);
 		}
 		return args;
 	}
 
-	private Object parameterValue(HttpServletRequest request, String name) {
-		String[] value = request.getParameterValues(name);
-		if (value == null) {
-			return null;
-		}
-		if (value.length == 1) {
-			return value[0];
-		}
-		return value;
-	}
-
-	private String findJsonpCallback(HttpServletRequest request) {
-		String callback = request.getParameter("jsonpCallback");
-		if (callback == null) {
-			callback = request.getParameter("callback");
-		}
-		return callback;
-	}
-
 	/** 输出当前注册的RPC服务列表 */
 	private void outputRpcServiceList(HttpServletResponse response) throws IOException {
-		String head = "<head>"//
-				+ "<title>JSON RPC Service List</title>"//
-				+ "<style type='text/css'>table{border-collapse:collapse;border:none;width:800px;margin:0 auto;}td{border:solid #000 1px;}</style>"//
-				+ "</head>";
+		String head = "<head><title>JSON RPC Service List</title><style type='text/css'>table{border-collapse:collapse;border:none;width:800px;margin:0 auto;}td{border:solid #000 1px;}</style></head>";
 		StringBuilder html = new StringBuilder("<html>").append(head).append("<body><h2 style='text-align:center;'>JSON RPC Service List</h2><table>");
 		rpcRegistry.getHandlers().forEach(handler -> {
-			html.append("<tr>")//
-					.append("<td style='width:300px;'>").append(handler.getServiceClass().getName()).append("</td>")// 服务类名称
-					.append("<td style='padding-left: 10px;'>");
-			handler.getMethods().forEach(m -> {
-				Class<?>[] paramTypes = m.getParameterTypes();
-				String[] params = new String[paramTypes.length];
-				for (int i = 0; i < params.length; i++) {
-					params[i] = paramTypes[i].getSimpleName();
-				}
-				html.append("<div>")//
-						.append(m.getReturnType().getSimpleName()).append(" ")// 返回值类型
-						.append(m.getName())// 方法名
-						.append("(").append(String.join(",", params)).append(")")// 参数列表类型
-						.append("</div>");
-			});
+			html.append("<tr><td style='width:300px;'>").append(handler.getServiceClass().getName()).append("</td>td style='padding-left: 10px;'>");
+			handler.getMethodInfos().forEach(m -> html.append("<div>").append(m.toString()).append("</div>"));
 			html.append("</td></tr>");
 		});
 		html.append("</table></body></html>");
@@ -225,6 +194,8 @@ public class RpcDispatcher extends HttpServlet {
 		byte[] data = IoUtils.readStream(request.getInputStream(), request.getContentLength());
 		// 2、转成JSON字符串
 		String jsonText = new String(data);
+		logger.debug("RPC {} POST Request jsonText: {}", serviceName, jsonText);
+
 		RpcRequest rpcRequest = JSON.parseObject(jsonText, RpcRequest.class);
 		// 3、业务处理
 		RpcResponse rpcResponse = rpcRegistry.find(serviceName).execute(rpcRequest);
