@@ -2,7 +2,7 @@
 
 * 支持utf-8编码
 * 方法不可重名
-* 支持JSONP请求
+* 支持JSONP请求，参数名jsonpCallback、callback
 
 ##GET请求协议
 
