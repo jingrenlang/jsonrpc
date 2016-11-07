@@ -2,7 +2,7 @@ package com.jsonrpc.server.utils;
 
 import javax.servlet.http.HttpServletRequest;
 
-public class HttpUtils {
+public class ServletUtils {
 
 	public static Object parameterValue(HttpServletRequest request, String name) {
 		String[] value = request.getParameterValues(name);

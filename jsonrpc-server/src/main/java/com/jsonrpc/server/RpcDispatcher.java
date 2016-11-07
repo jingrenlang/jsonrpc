@@ -18,7 +18,7 @@ import com.alibaba.fastjson.JSON;
 import com.jsonrpc.core.RpcRequest;
 import com.jsonrpc.core.RpcResponse;
 import com.jsonrpc.core.utils.IoUtils;
-import com.jsonrpc.server.utils.HttpUtils;
+import com.jsonrpc.server.utils.ServletUtils;
 import com.jsonrpc.server.utils.MethodInfo;
 
 /**
@@ -96,7 +96,7 @@ public class RpcDispatcher extends HttpServlet {
 		RpcResponse rpcResponse = rpcRegistry.find(serviceName).execute(rpcRequest);
 
 		// 对JSONP的支持
-		String jsonpCallback = HttpUtils.getJsonpParameter(request);
+		String jsonpCallback = ServletUtils.getJsonpParameter(request);
 		if (jsonpCallback != null) {
 			response.setContentType(CONTENT_TYPE_JAVASCRIPT);
 			String jsonResult = JSON.toJSONString(rpcResponse);
@@ -129,7 +129,7 @@ public class RpcDispatcher extends HttpServlet {
 		while (paramNames.hasMoreElements()) {
 			String name = paramNames.nextElement();
 			if (!name.contains(".")) {
-				paramsMap.put(name, HttpUtils.parameterValue(request, name));
+				paramsMap.put(name, ServletUtils.parameterValue(request, name));
 				continue;
 			}
 
@@ -144,7 +144,7 @@ public class RpcDispatcher extends HttpServlet {
 			for (int i = 1; i < nestProperties.length; i++) {
 				String key = nestProperties[i];
 				if (i == nestProperties.length - 1) {
-					nestMap.put(key, HttpUtils.parameterValue(request, name));
+					nestMap.put(key, ServletUtils.parameterValue(request, name));
 					continue;
 				}
 				if (!nestMap.containsKey(key)) {
