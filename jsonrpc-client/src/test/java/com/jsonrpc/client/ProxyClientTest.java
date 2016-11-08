@@ -8,7 +8,7 @@ public class ProxyClientTest {
 
 	public static void main(String[] args) {
 		RpcConfig config = new RpcConfig();
-		config.setUrl("http://localhost:8080");
+		config.setUrl("http://localhost:8000");
 
 		RpcService service = RpcClient.getService(config, RpcService.class);
 		System.out.println(service.exec());
