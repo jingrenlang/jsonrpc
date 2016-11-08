@@ -3,8 +3,6 @@ package com.jsonrpc.server;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 /**
@@ -14,8 +12,6 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
  *
  */
 public class RpcServer {
-	private static final String CONTEXT = "/";
-
 	private int port = 8080;
 	private int poolSize = 200;
 	private RpcDispatcher dispatcher;
@@ -66,17 +62,9 @@ public class RpcServer {
 		return server;
 	}
 
-	private ServletContextHandler createServletHandler() {
-		ServletContextHandler result = new ServletContextHandler();
-		result.setContextPath(CONTEXT);
-
-		result.addServlet(new ServletHolder(dispatcher), "/*");
-		return result;
-	}
-
 	public void start() {
 		final Server server = createServer(getPort(), getPoolSize());
-		server.setHandler(createServletHandler());
+		server.setHandler(dispatcher);
 
 		try {
 			server.stop();

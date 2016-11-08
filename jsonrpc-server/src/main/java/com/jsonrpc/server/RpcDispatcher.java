@@ -5,12 +5,12 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,8 +18,8 @@ import com.alibaba.fastjson.JSON;
 import com.jsonrpc.core.RpcRequest;
 import com.jsonrpc.core.RpcResponse;
 import com.jsonrpc.core.utils.IoUtils;
-import com.jsonrpc.server.utils.ServletUtils;
 import com.jsonrpc.server.utils.MethodInfo;
+import com.jsonrpc.server.utils.ServletUtils;
 
 /**
  * RPC请求分发器
@@ -27,9 +27,7 @@ import com.jsonrpc.server.utils.MethodInfo;
  * @author jingrenlang
  *
  */
-public class RpcDispatcher extends HttpServlet {
-
-	private static final long serialVersionUID = 2215164708635350018L;
+public class RpcDispatcher extends AbstractHandler {
 
 	private static final String CONTENT_TYPE_JSON = "application/json;charset=utf-8";
 	private static final String CONTENT_TYPE_JAVASCRIPT = "text/javascript;charset=utf-8";
@@ -56,13 +54,18 @@ public class RpcDispatcher extends HttpServlet {
 	}
 
 	@Override
-	public void init(ServletConfig config) throws ServletException {
-		super.init(config);
+	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		baseRequest.setHandled(true);
+
+		if ("POST".equalsIgnoreCase(request.getMethod())) {
+			this.doPost(request, response);
+		} else {
+			this.doGet(request, response);
+		}
 	}
 
 	/** GET请求主要是兼容页面的AJAX、JSONP */
-	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	private void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String context = request.getPathInfo();
 		if (SERVICE_LIST_PATH.equals(context)) {
 			outputRpcServiceList(response);
@@ -177,8 +180,7 @@ public class RpcDispatcher extends HttpServlet {
 		response.getWriter().flush();
 	}
 
-	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	private void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String context = request.getPathInfo();
 		if (context == null || context.trim().length() == 0) {
 			ouputJSON(response, RpcResponse.error(0, 404, ERROR_SERVICE_MISSING));
