@@ -25,3 +25,51 @@
 * id:请求编号
 * method:方法名
 * params:参数数组
+
+##Spring集成
+
+Server端
+
+	<bean id="rpcServiceImpl" class="com.jsonrpc.RpcService" />
+
+	<bean class="com.jsonrpc.server.spring.JsonrpcServerFactoryBean">
+		<property name="port" value="8000" />
+		<property name="poolSize" value="300" />
+		<property name="services">
+			<map>
+				<entry key="com.jsonrpc.RpcService" value-ref="rpcServiceImpl" />
+			</map>
+		</property>
+	</bean>
+
+	//启动Server端
+	public static void main(String[] args) {
+		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("spring.xml");
+		ctx.registerShutdownHook();
+		ctx.close();
+	}
+
+Client端
+
+	<bean id="JsonrpcProxyFactory" abstract="true" class="com.jsonrpc.client.spring.JsonrpcProxyFactoryBean">
+		<property name="url" value="http://localhost:8000" />
+		<property name="connectTimeout" value="2000" />
+		<property name="readTimeout" value="3000" />
+	</bean>
+
+	<bean id="rpcService" parent="JsonrpcProxyFactory">
+		<property name="interface" value="com.jsonrpc.RpcService" />
+	</bean>
+	
+	//客户端访问服务
+	public static void main(String[] args) {
+		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("spring.xml");
+		RpcService service = ctx.getBean(RpcService.class);
+		System.out.println(service.exec());
+		service.say("JSON RPC");
+		System.out.println(service.returnNull());
+
+		ctx.registerShutdownHook();
+		ctx.close();
+	}
+
