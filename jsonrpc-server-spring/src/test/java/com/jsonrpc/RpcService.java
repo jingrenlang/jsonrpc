@@ -1,5 +1,6 @@
 package com.jsonrpc;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,8 +14,8 @@ public class RpcService {
 		return map;
 	}
 
-	public void say(String name) {
-		System.out.println("Hello," + name);
+	public String say(String name) {
+		return "Hello," + name;
 	}
 
 	public Object returnNull() {
@@ -24,4 +25,21 @@ public class RpcService {
 	public String method(String s, int i, double d) {
 		return null;
 	}
+
+	public boolean bool() {
+		return true;
+	}
+
+	public int tint() {
+		return 1;
+	}
+
+	public float tfloat() {
+		return 1.23f;
+	}
+
+	public BigDecimal decimal() {
+		return new BigDecimal("1.23333");
+	}
+
 }

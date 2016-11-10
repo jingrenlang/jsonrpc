@@ -1,5 +1,6 @@
 package com.jsonrpc;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class UserService {
@@ -9,7 +10,11 @@ public class UserService {
 	}
 
 	public List<User> findUsers(String name) {
-		return null;
+		return Arrays.asList(new User("UA", 24, true), new User("UB", 25, true), new User("UC", 26, true));
+	}
+
+	public User[] array() {
+		return new User[] { new User("UA", 24, true), new User("UB", 25, true), new User("UC", 26, true) };
 	}
 
 	public User save(String name, User user) {

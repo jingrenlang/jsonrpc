@@ -45,6 +45,7 @@ public class JsonrpcBeanDefinitionParser extends AbstractSingleBeanDefinitionPar
 
 			String interfaceClass = ele.getAttribute("interface");
 			String ref = ele.getAttribute("ref");
+			//此处如何获取真实的spring bean?
 			interfaces.put(interfaceClass, new RuntimeBeanReference(ref));
 		}
 
