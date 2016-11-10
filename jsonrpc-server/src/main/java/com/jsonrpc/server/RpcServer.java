@@ -15,6 +15,7 @@ public class RpcServer {
 	private int port = 8080;
 	private int poolSize = 200;
 	private RpcDispatcher dispatcher;
+	private Server server;
 
 	public RpcServer(RpcDispatcher dispatcher) {
 		super();
@@ -62,18 +63,14 @@ public class RpcServer {
 		return server;
 	}
 
-	public void start() {
-		final Server server = createServer(getPort(), getPoolSize());
+	public void start() throws Exception {
+		server = createServer(getPort(), getPoolSize());
 		server.setHandler(dispatcher);
+		server.start();
+	}
 
-		try {
-			server.stop();
-			server.start();
-			server.join();
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(-1);
-		}
+	public void stop() throws Exception {
+		server.stop();
 	}
 
 }

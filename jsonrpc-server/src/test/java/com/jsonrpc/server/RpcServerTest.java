@@ -8,7 +8,7 @@ import com.jsonrpc.server.RpcServer;
 
 public class RpcServerTest {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		RpcRegistry registry = new RpcRegistry();
 		registry.register(RpcService.class, new RpcService());
 		registry.register(UserService.class, new UserService());
@@ -16,5 +16,6 @@ public class RpcServerTest {
 		RpcDispatcher dispatcher = new RpcDispatcher(registry);
 		RpcServer server = new RpcServer(dispatcher);
 		server.start();
+		Thread.sleep(Integer.MAX_VALUE);
 	}
 }
