@@ -9,7 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.fastjson.JSON;
+import com.google.gson.Gson;
 import com.jsonrpc.core.RpcException;
 import com.jsonrpc.core.RpcRequest;
 import com.jsonrpc.core.RpcResponse;
@@ -18,6 +18,7 @@ import com.jsonrpc.core.utils.IoUtils;
 public class RpcInvoker implements InvocationHandler {
 
 	private AtomicLong sequence = new AtomicLong();
+	private Gson gson = new Gson();
 
 	private RpcConfig config;
 
@@ -35,7 +36,7 @@ public class RpcInvoker implements InvocationHandler {
 
 		byte[] readBytes = sendRequest(method.getDeclaringClass(), request);
 		String jsonText = new String(readBytes);
-		RpcResponse rpcResponse = JSON.parseObject(jsonText, RpcResponse.class);
+		RpcResponse rpcResponse = gson.fromJson(jsonText, RpcResponse.class);
 
 		// RPC调用出错
 		if (rpcResponse.getError() != null) {
@@ -48,16 +49,15 @@ public class RpcInvoker implements InvocationHandler {
 			return null;
 		}
 
-		Class<?> returnClass = method.getReturnType();
-		if (String.class == returnClass) {
+		if (String.class == method.getReturnType()) {
 			return result.toString();
 		}
-		return JSON.parseObject(result.toString(), returnClass);
+		return gson.fromJson(result.toString(), method.getGenericReturnType());
 	}
 
 	private byte[] sendRequest(Class<?> _interface, RpcRequest request) {
 		String url = config.getUrl() + "/" + _interface.getName();
-		byte[] jsonBytes = JSON.toJSONString(request).getBytes();
+		byte[] jsonBytes = gson.toJson(request).getBytes();
 
 		// 构建HTTP链接
 		HttpURLConnection connection;

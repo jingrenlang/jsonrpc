@@ -2,6 +2,7 @@ package com.jsonrpc.client.spring;
 
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.util.StringUtils;
 
 import com.jsonrpc.client.RpcClient;
 import com.jsonrpc.client.RpcConfig;
@@ -12,6 +13,7 @@ public class JsonrpcProxyFactoryBean<T> implements FactoryBean<T>, InitializingB
 	private String url;
 	private int connectTimeout = 2000;
 	private int readTimeout = 3000;
+	private RpcConfig config;
 
 	private T proxy;
 
@@ -31,15 +33,22 @@ public class JsonrpcProxyFactoryBean<T> implements FactoryBean<T>, InitializingB
 		this.readTimeout = readTimeout;
 	}
 
+	public void setConfig(RpcConfig config) {
+		this.config = config;
+	}
+
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		if (proxy == null) {
-			RpcConfig config = new RpcConfig();
+		if (proxy != null) {
+			return;
+		}
+		if (StringUtils.hasText(url)) {
+			config = new RpcConfig();
 			config.setUrl(url);
 			config.setConnectTimeout(connectTimeout);
 			config.setReadTimeout(readTimeout);
-			proxy = RpcClient.getService(config, interfaceClass);
 		}
+		proxy = RpcClient.getService(config, interfaceClass);
 	}
 
 	@Override
