@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:jsonrpc="http://com.jsonrpc.spring/schema/jsonrpc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://com.jsonrpc.spring/schema/jsonrpc
+	http://com.jsonrpc.spring/schema/jsonrpc.xsd"
+	default-lazy-init="false">
+
+	<bean id="rpcServiceImpl" class="com.jsonrpc.RpcService" />
+	<bean id="userServiceImpl" class="com.jsonrpc.UserService" />
+
+	<jsonrpc:server id="jsonrpcServer" port="8001" pool-size="300">
+		<jsonrpc:service interface="com.jsonrpc.RpcService" ref="rpcServiceImpl"/>
+		<jsonrpc:service interface="com.jsonrpc.UserService" ref="userServiceImpl"/>
+	</jsonrpc:server>
+</beans>
